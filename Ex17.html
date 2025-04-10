@@ -1,0 +1,202 @@
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>Mapbox Example 17 - 2.5D Tree Hex</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
+
+    .legend {
+      background-color: #fff;
+      border-radius: 3px;
+      bottom: 30px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+      padding: 10px;
+      position: absolute;
+      right: 10px;
+      z-index: 1;
+    }
+
+    .legend h4 {
+      margin: 0 0 10px;
+    }
+
+    .legend div span {
+      border-radius: 50%;
+      display: inline-block;
+      height: 10px;
+      margin-right: 5px;
+      width: 10px;
+    }
+
+    .map-overlay {
+      font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+      position: absolute;
+      width: 380px;
+      min-width: 380px;
+      top: 0;
+      right: 0;
+      padding: 10px;
+    }
+
+    .map-overlay .map-overlay-inner {
+      background-color: #fff;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.20);
+      border-radius: 3px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
+    .map-overlay h2 {
+      line-height: 24px;
+      display: block;
+      margin: 0 0 10px;
+    }
+
+    .map-overlay p.credit {
+      margin: 0;
+      padding: 0;
+    }
+
+    .map-overlay-inner fieldset {
+      border: none;
+      padding: 0;
+      margin: 0 0 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ✅ Added this missing div to show the map -->
+  <div id="map"></div>
+
+  <div class='map-overlay'>
+    <div class='map-overlay-inner'>
+      <h2>2.5D Denver Tree Map</h2>
+      <fieldset>
+        <label>Select Tree Genus</label>
+        <select id="data_layer" name="layer">
+          <option value="0">All Genera</option>
+          <option value="1">Ash</option>
+          <option value="2">Crabapple</option>
+          <option value="3">Elm</option>
+          <option value="4">Hackberry</option>
+          <option value="5">Honeylocust</option>
+          <option value="6">Linden</option>
+          <option value="7">Maple</option>
+          <option value="8">Oak</option>
+          <option value="9">Pine</option>
+          <option value="10">Spruce</option>
+        </select>
+      </fieldset>
+
+      <p class="credit">This map uses hexagons to visualize tree data. Created with
+        <a href="https://data.colorado.gov/Environment/Map-of-Tree-Inventory-Denver/hzmx-2dfk">Denver Tree Inventory
+          data</a>.
+      </p>
+      <p class="credit">Zoom in to <a href="#" class="credit" id="den_view">Denver</a></p>
+    </div>
+  </div>
+
+  <script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoibWFlcmxvdmVybiIsImEiOiJjbTd3NnhxY24wMmp4MmxvaGNheGMzcHJwIn0.ZiWXM5n2BI3ZZY25ULAprA';
+
+    var map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/maerlovern/cm9buriyu007701rc1w7vd60k',
+      center: [-104.951046, 39.732470],
+      zoom: 11,
+      pitch: 50
+    });
+
+    map.on('load', function () {
+      map.setLight({ color: "#fff", intensity: 0.15, position: [1, 180, 30] });
+      map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+
+      map.addLayer({
+        'id': 'denver_tree_point',
+        'type': 'fill-extrusion',
+        'source': {
+          type: 'vector',
+          url: 'mapbox://junzhimager.cnyhw4p3'
+        },
+        'source-layer': 'denver_hexagon_tree_count_top-5j28n7',
+        'layout': {
+          'visibility': 'visible'
+        },
+        'paint': {
+          'fill-extrusion-color': [
+            'interpolate',
+            ['exponential', 0.5],
+            ['get', 'n_all'],
+            0, '#440154',
+            180, '#31688e',
+            360, '#35b779',
+            540, '#fde725',
+            720, '#fde725'
+          ],
+          'fill-extrusion-height': ['*', 3, ['get', 'n_all']],
+          'fill-extrusion-opacity': 0.8
+        }
+      });
+    });
+
+    document.getElementById('den_view').addEventListener('click', function () {
+      map.flyTo({
+        center: [-104.961046, 39.732470],
+        zoom: 12,
+        speed: 0.3,
+        pitch: 60
+      });
+    });
+
+    const lt_genus = [
+      "n_all",
+      "n_Ash", "n_Crabapple", "n_Elm", "n_Hackberry",
+      "n_Honeylocust", "n_Linden", "n_Maple",
+      "n_Oak", "n_Pine", "n_Spruce"
+    ];
+
+    const lt_g_max_range = [
+      720, 199, 102, 108, 48, 182, 140, 171, 170, 254, 94
+    ];
+
+    document.getElementById('data_layer').addEventListener('change', function (e) {
+      const genus_selected = lt_genus[e.target.value];
+      const genus_max = lt_g_max_range[e.target.value];
+
+      map.setPaintProperty("denver_tree_point", 'fill-extrusion-color', [
+        'interpolate',
+        ['exponential', 0.5],
+        ['get', genus_selected],
+        0, '#440154',
+        genus_max * 0.25, '#31688e',
+        genus_max * 0.5, '#35b779',
+        genus_max * 0.75, '#fde725',
+        genus_max, '#fde725'
+      ]);
+
+      map.setPaintProperty("denver_tree_point", 'fill-extrusion-height', [
+        '*', 3, ['get', genus_selected]
+      ]);
+    });
+  </script>
+</body>
+
+</html>
